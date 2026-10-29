@@ -1,0 +1,22 @@
+{
+  "name": "eduvault-certificate-verification",
+  "version": "1.0.0",
+  "description": "EduVault: Decentralized Academic Certificate Verification System using SHA-256 and Node.js",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "author": "Akshay Nischal (2501531530023) - B.Tech CSE AIML, Lloyd Institute of Engineering & Technology",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.2.0",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.3.1",
+    "pdfkit": "^0.15.0"
+  }
+}

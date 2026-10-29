@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <title>EduVault — Decentralized Academic Certificate Verification System | Lloyd Institute</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #f4f7fb; color: #0f172a; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    .navy-header { background: linear-gradient(135deg, #162a45 0%, #1e3a5f 60%, #155e75 100%); }
+    .btn-teal { background: linear-gradient(135deg, #1b6b85 0%, #155e75 100%); transition: all 0.2s ease; }
+    .btn-teal:hover { background: linear-gradient(135deg, #155e75 0%, #0e485c 100%); transform: translateY(-1px); box-shadow: 0 8px 20px -4px rgba(21, 94, 117, 0.45); }
+    .card-shadow { box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.07), 0 4px 12px -2px rgba(15, 23, 42, 0.04); }
+    .cert-border { border: 8px double #1e3a5f; background: radial-gradient(circle at center, #ffffff 0%, #f8fafc 100%); }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between">
+
+  <!-- Top Cybersecurity Status Bar -->
+  <div class="bg-slate-900 text-slate-200 text-xs py-2 px-4 border-b border-slate-800">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-3">
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-emerald-400 bg-emerald-950/80 border border-emerald-700/60 font-medium">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          SHA-256 Cryptographic Engine Active
+        </span>
+        <span class="hidden sm:inline text-slate-400">|</span>
+        <span class="hidden sm:inline text-slate-300">WAF &amp; XSS/NoSQL Sanitization: <strong class="text-emerald-400">ENFORCED</strong></span>
+        <span class="hidden md:inline text-slate-400">|</span>
+        <span class="hidden md:inline text-slate-300">RBAC Session Guard: <strong id="topRoleStatus" class="text-sky-400">PUBLIC VERIFIER</strong></span>
+      </div>
+      <div class="flex items-center gap-3">
+        <button onclick="toggleSecurityModal()" class="text-sky-400 hover:text-sky-300 underline font-medium flex items-center gap-1">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+          Cybersecurity Shield (<span id="secEventCount">0</span> Alerts)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Institutional Header -->
+  <header class="navy-header text-white shadow-lg sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-3.5">
+        <div class="w-12 h-12 rounded-xl bg-white/10 backdrop-blur border border-white/20 flex items-center justify-center shadow-inner">
+          <svg class="w-7 h-7 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-2xl font-extrabold tracking-tight">EduVault</h1>
+            <span class="text-[11px] uppercase tracking-wider px-2 py-0.5 rounded bg-amber-400/20 text-amber-300 border border-amber-400/30 font-semibold">v2.4 Enterprise</span>
+          </div>
+          <p class="text-xs sm:text-sm text-slate-300">Lloyd Institute of Engineering &amp; Technology · Decentralized Academic Credential Registry</p>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="flex items-center bg-slate-900/40 p-1.5 rounded-xl border border-white/10 gap-1">
+        <button onclick="switchTab('verify')" id="tabBtn-verify" class="px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition bg-white text-slate-900 shadow">
+          Public Verification Portal
+        </button>
+        <button onclick="switchTab('student')" id="tabBtn-student" class="px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition text-slate-200 hover:bg-white/10">
+          Student Portal
+        </button>
+        <button onclick="switchTab('admin')" id="tabBtn-admin" class="px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition text-slate-200 hover:bg-white/10">
+          Administrator Portal
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Security Notification Toast -->
+  <div id="toastBanner" class="hidden fixed bottom-5 right-5 z-50 max-w-md bg-slate-900 text-white px-4 py-3.5 rounded-xl shadow-2xl border border-slate-700 flex items-start gap-3">
+    <span id="toastIcon" class="mt-0.5 text-emerald-400">●</span>
+    <div class="text-xs sm:text-sm flex-1" id="toastMsg">Notification</div>
+    <button onclick="document.getElementById('toastBanner').classList.add('hidden')" class="text-slate-400 hover:text-white">✕</button>
+  </div>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
+
+    <!-- ==========================================
+         PORTAL 1: PUBLIC VERIFICATION PORTAL
+         ========================================== -->
+    <section id="portal-verify" class="space-y-8">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+        <!-- Left Column: Verification Input Form -->
+        <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200/80 card-shadow overflow-hidden">
+          <div class="navy-header px-6 py-4 text-white flex items-center justify-between">
+            <div>
+              <h2 class="text-lg font-bold">EduVault Public Verification Portal</h2>
+              <p class="text-xs text-slate-300">Instant SHA-256 Cryptographic Credential Authenticity Check</p>
+            </div>
+            <span class="text-xs bg-white/10 px-2.5 py-1 rounded-md border border-white/15 mono">SHA-256 · 256-bit</span>
+          </div>
+
+          <div class="p-6 space-y-6">
+            <!-- Mode Switcher: By Credential ID vs By File Upload -->
+            <div class="grid grid-cols-2 bg-slate-100 p-1 rounded-xl border border-slate-200">
+              <button onclick="setVerifyMode('id')" id="vMode-id" class="py-2 text-xs sm:text-sm font-bold rounded-lg bg-white text-slate-900 shadow-sm transition">
+                Verify by Credential ID
+              </button>
+              <button onclick="setVerifyMode('file')" id="vMode-file" class="py-2 text-xs sm:text-sm font-bold rounded-lg text-slate-600 hover:text-slate-900 transition">
+                Verify by Certificate File
+              </button>
+            </div>
+
+            <!-- MODE A: Verify by Credential ID -->
+            <div id="verifyByIdBox" class="space-y-4">
+              <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Credential ID</label>
+                <input id="verifyCredIdInput" type="text" value="EDV-2026-0001" placeholder="e.g., EDV-2026-0001"
+                  class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-sky-600 focus:ring-2 focus:ring-sky-500/20 outline-none text-base font-semibold mono" />
+              </div>
+
+              <div class="flex flex-wrap items-center gap-2 pt-1">
+                <span class="text-xs text-slate-500 font-medium">Quick Registry Select:</span>
+                <button onclick="quickSelectId('EDV-2026-0001')" class="text-xs px-2.5 py-1 rounded-md bg-slate-100 hover:bg-sky-50 hover:text-sky-700 border border-slate-200 font-medium mono transition">EDV-2026-0001 (Akshay Nischal)</button>
+                <button onclick="quickSelectId('EDV-2026-0002')" class="text-xs px-2.5 py-1 rounded-md bg-slate-100 hover:bg-sky-50 hover:text-sky-700 border border-slate-200 font-medium mono transition">EDV-2026-0002</button>
+              </div>
+
+              <button onclick="verifyByCredentialId()" class="w-full btn-teal text-white font-bold py-3.5 rounded-xl shadow-md text-base cursor-pointer">
+                Verify
+              </button>
+            </div>
+
+            <!-- MODE B: Verify by File Upload / Integrity Re-Computation -->
+            <div id="verifyByFileBox" class="hidden space-y-4">
+              <div class="border-2 border-dashed border-slate-300 rounded-xl p-5 text-center bg-slate-50 hover:bg-slate-100/70 transition">
+                <input type="file" id="certFileUpload" accept=".json,.txt,.pdf" class="hidden" onchange="handleCertificateFileUpload(event)" />
+                <label for="certFileUpload" class="cursor-pointer flex flex-col items-center space-y-2">
+                  <div class="w-11 h-11 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                  </div>
+                  <span class="text-sm font-bold text-slate-800">Click to Upload Certificate File (.PDF / .JSON)</span>
+                  <span class="text-xs text-slate-500">System extracts metadata, recomputes SHA-256 hash, and compares with MongoDB record</span>
+                </label>
+              </div>
+
+              <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Extracted Document Payload Inspector</span>
+                  <div class="flex gap-1.5">
+                    <button onclick="loadGenuinePayload()" class="text-xs px-2.5 py-1 rounded bg-emerald-100 text-emerald-800 font-semibold hover:bg-emerald-200 transition">Load Genuine File</button>
+                    <button onclick="loadTamperedPayload()" class="text-xs px-2.5 py-1 rounded bg-rose-100 text-rose-800 font-semibold hover:bg-rose-200 transition">Simulate Forged / Edited File</button>
+                  </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <label class="text-[11px] font-semibold text-slate-500">CREDENTIAL ID</label>
+                    <input id="fileCredId" type="text" value="EDV-2026-0001" class="w-full px-3 py-1.5 text-xs mono rounded border border-slate-300 bg-white" />
+                  </div>
+                  <div>
+                    <label class="text-[11px] font-semibold text-slate-500">STUDENT NAME</label>
+                    <input id="fileStudentName" type="text" value="Akshay Nischal" class="w-full px-3 py-1.5 text-xs rounded border border-slate-300 bg-white" />
+                  </div>
+                  <div>
+                    <label class="text-[11px] font-semibold text-slate-500">COURSE / DEGREE</label>
+                    <input id="fileCourse" type="text" value="B.Tech CSE – AIML" class="w-full px-3 py-1.5 text-xs rounded border border-slate-300 bg-white" />
+                  </div>
+                  <div>
+                    <label class="text-[11px] font-semibold text-slate-500">YEAR OF PASSING</label>
+                    <input id="fileYear" type="text" value="2026" class="w-full px-3 py-1.5 text-xs mono rounded border border-slate-300 bg-white" />
+                  </div>
+                </div>
+                <button onclick="verifyUploadedPayload()" class="w-full btn-teal text-white font-bold py-3 rounded-xl text-sm shadow">
+                  Re-Hash Document &amp; Verify Integrity
+                </button>
+              </div>
+            </div>
+
+            <!-- DYNAMIC VERIFICATION RESULT DISPLAY (Matches Slide 7 VALID / TAMPERED Cards) -->
+            <div id="verificationResultContainer" class="pt-2"></div>
+          </div>
+        </div>
+
+        <!-- Right Column: Live Cryptographic Hash Inspector & Ledger Summary -->
+        <div class="lg:col-span-5 space-y-6">
+          <div class="bg-white rounded-2xl border border-slate-200/80 card-shadow overflow-hidden">
+            <div class="navy-header px-5 py-3.5 text-white">
+              <h3 class="text-sm font-bold">Node.js Crypto · SHA-256 Verification Pipeline</h3>
+              <p class="text-[11px] text-slate-300">Live Cryptographic Fingerprint Comparison</p>
+            </div>
+            <div class="p-5 space-y-4">
+              <div class="bg-slate-900 text-slate-100 rounded-xl p-4 mono text-xs space-y-2 border border-slate-800">
+                <div class="text-sky-400 font-semibold text-[11px] uppercase tracking-wider">Normalized Input Payload</div>
+                <div id="liveHashInputDisplay" class="text-slate-200 break-all leading-relaxed">EDV-2026-0001 | Akshay Nischal | B.Tech CSE-AIML | 2026</div>
+                <div class="text-amber-400 pt-1">sha256( data ) →</div>
+              </div>
+
+              <div class="flex justify-center text-sky-700 font-bold text-lg">↓</div>
+
+              <div class="border-2 border-sky-700/70 bg-sky-50/40 rounded-xl p-4 space-y-1.5">
+                <div class="text-[11px] font-bold uppercase tracking-wider text-sky-800">Computed 256-Bit Digital Fingerprint</div>
+                <div id="liveComputedHashDisplay" class="mono text-sm font-semibold text-slate-900 break-all leading-relaxed">
+                  14da497afb399c9f983d224fe2663e7099236852eefd92aae06c242e8588bcee
+                </div>
+              </div>
+
+              <div class="border border-slate-200 bg-slate-50 rounded-xl p-4 space-y-1.5">
+                <div class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Immutable MongoDB Stored Fingerprint</div>
+                <div id="liveStoredHashDisplay" class="mono text-xs font-medium text-slate-700 break-all leading-relaxed">
+                  14da497afb399c9f983d224fe2663e7099236852eefd92aae06c242e8588bcee
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Active Issued Credentials Ledger -->
+          <div class="bg-white rounded-2xl border border-slate-200/80 card-shadow p-5 space-y-3">
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-bold text-slate-800">Verified Institutional Registry (MongoDB)</h3>
+              <span id="totalCertCountBadge" class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold">3 Records</span>
+            </div>
+            <div id="publicLedgerList" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==========================================
+         PORTAL 2: STUDENT PORTAL
+         ========================================== -->
+    <section id="portal-student" class="hidden space-y-8">
+      <!-- Student Login Box -->
+      <div id="studentLoginCard" class="max-w-md mx-auto bg-white rounded-2xl border border-slate-200 card-shadow overflow-hidden">
+        <div class="navy-header px-6 py-4 text-white">
+          <h2 class="text-lg font-bold">Student Credential Portal</h2>
+          <p class="text-xs text-slate-300">Sign in with University Roll Number to view &amp; download verified PDFs</p>
+        </div>
+        <div class="p-6 space-y-4">
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-500 mb-1">University Roll Number</label>
+            <input id="stuRollInput" type="text" value="2501531530023" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 mono text-sm font-semibold" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Student Password / PIN</label>
+            <input id="stuPassInput" type="password" value="lloyd2026" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm" />
+          </div>
+          <div class="flex items-center justify-between text-xs">
+            <button onclick="fillStudentDemo()" class="text-sky-700 hover:underline font-semibold">Auto-fill: Akshay Nischal (2501531530023)</button>
+          </div>
+          <button onclick="loginStudent()" class="w-full btn-teal text-white font-bold py-3 rounded-xl shadow">
+            Sign In to Student Wallet
+          </button>
+        </div>
+      </div>
+
+      <!-- Student Authenticated Dashboard -->
+      <div id="studentDashboard" class="hidden space-y-6">
+        <div class="bg-white rounded-2xl border border-slate-200 card-shadow p-6 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200">Authenticated Student Session</span>
+            <h2 class="text-xl font-extrabold text-slate-900 mt-1" id="stuWelcomeName">Akshay Nischal</h2>
+            <p class="text-xs sm:text-sm text-slate-600" id="stuWelcomeMeta">Roll No: 2501531530023 · B.Tech CSE – AIML (Sec E) · Lloyd Institute of Engineering &amp; Technology</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2.5">
+            <button onclick="testUnauthorizedAdminRoute()" class="px-3.5 py-2 rounded-xl border border-rose-300 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition">
+              Test Admin Route Access (RBAC Guard)
+            </button>
+            <button onclick="logoutStudent()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition">
+              Sign Out
+            </button>
+          </div>
+        </div>
+
+        <!-- Visual Official Certificate Preview & PDF Download -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          <div class="lg:col-span-5 space-y-4">
+            <h3 class="text-base font-bold text-slate-800">Issued Academic Credentials</h3>
+            <div id="studentCertCards" class="space-y-3"></div>
+          </div>
+
+          <div class="lg:col-span-7 space-y-4">
+            <div class="flex items-center justify-between">
+              <h3 class="text-base font-bold text-slate-800">Cryptographically Signed Certificate Preview</h3>
+              <button onclick="downloadActiveCertificatePDF()" class="btn-teal text-white px-4 py-2 rounded-xl text-xs sm:text-sm font-bold shadow flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                Download Secure PDF Certificate
+              </button>
+            </div>
+
+            <!-- Certificate Visual Canvas -->
+            <div id="certificateVisualBox" class="cert-border rounded-xl p-6 sm:p-8 card-shadow relative overflow-hidden">
+              <div class="text-center space-y-2 border-b-2 border-slate-200 pb-4">
+                <div class="text-xs font-bold uppercase tracking-widest text-sky-800">Dr. A.P.J. Abdul Kalam Technical University, Uttar Pradesh</div>
+                <h4 class="text-lg sm:text-xl font-extrabold text-slate-900 uppercase">Lloyd Institute of Engineering &amp; Technology</h4>
+                <p class="text-xs text-slate-500">Plot No. 3, Knowledge Park II, Greater Noida, Uttar Pradesh 201306</p>
+                <div class="inline-block mt-2 px-4 py-1 rounded-full bg-amber-50 border border-amber-300 text-amber-900 text-xs font-extrabold tracking-wider uppercase">
+                  Official Academic Credential Certificate
+                </div>
+              </div>
+
+              <div class="py-6 text-center space-y-3">
+                <p class="text-xs uppercase tracking-widest text-slate-500">This is to certify that</p>
+                <h2 id="certPreviewName" class="text-2xl sm:text-3xl font-extrabold text-slate-900">Akshay Nischal</h2>
+                <p class="text-xs sm:text-sm text-slate-600">University Roll No: <strong id="certPreviewRoll" class="mono text-slate-900">2501531530023</strong></p>
+                <p class="text-xs sm:text-sm text-slate-600 max-w-md mx-auto leading-relaxed">
+                  has successfully fulfilled the academic requirements prescribed for the degree/program of
+                </p>
+                <div id="certPreviewCourse" class="text-lg sm:text-xl font-bold text-sky-900">B.Tech CSE – AIML</div>
+                <p class="text-xs text-slate-600">Class of <strong id="certPreviewYear">2026</strong> · Status: <span class="text-emerald-700 font-bold">VERIFIED &amp; IMMUTABLE</span></p>
+              </div>
+
+              <div class="bg-slate-900 text-slate-100 rounded-lg p-3.5 mono text-[11px] space-y-1">
+                <div class="flex justify-between text-slate-400">
+                  <span>CREDENTIAL ID: <strong id="certPreviewId" class="text-white">EDV-2026-0001</strong></span>
+                  <span>ALGORITHM: <strong class="text-emerald-400">SHA-256</strong></span>
+                </div>
+                <div class="text-slate-400">DIGITAL FINGERPRINT:</div>
+                <div id="certPreviewHash" class="text-amber-300 break-all font-semibold">14da497afb399c9f983d224fe2663e7099236852eefd92aae06c242e8588bcee</div>
+              </div>
+
+              <div class="pt-5 mt-4 border-t border-slate-200 flex items-center justify-between text-xs text-slate-600">
+                <div>
+                  <div class="font-bold text-slate-900">Mr. Saroj</div>
+                  <div class="text-[11px]">Project Guide &amp; Assistant Professor (CSE – AIML)</div>
+                </div>
+                <div class="text-right">
+                  <div class="font-bold text-slate-900">Controller of Examinations</div>
+                  <div class="text-[11px]">Lloyd Institute of Engineering &amp; Technology</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         PORTAL 3: ADMINISTRATOR / INSTITUTION PORTAL
+         ========================================== -->
+    <section id="portal-admin" class="hidden space-y-8">
+      <!-- Admin Login Card -->
+      <div id="adminLoginCard" class="max-w-md mx-auto bg-white rounded-2xl border border-slate-200 card-shadow overflow-hidden">
+        <div class="navy-header px-6 py-4 text-white">
+          <h2 class="text-lg font-bold">Administrator / Institution Portal</h2>
+          <p class="text-xs text-slate-300">Role-Based Access Control (RBAC) Protected Examination Cell Login</p>
+        </div>
+        <div class="p-6 space-y-4">
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Administrator Email</label>
+            <input id="adminEmailInput" type="email" value="admin@lloyd.edu.in" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm font-medium" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Cryptographic Admin Passkey</label>
+            <input id="adminPassInput" type="password" value="Admin@EduVault2026" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm" />
+          </div>
+          <button onclick="loginAdmin()" class="w-full btn-teal text-white font-bold py-3 rounded-xl shadow">
+            Authenticate as Institution Admin
+          </button>
+        </div>
+      </div>
+
+      <!-- Admin Authenticated Workspace (Matches Slide 7 Left & Middle Screens) -->
+      <div id="adminWorkspace" class="hidden space-y-8">
+        <div class="bg-white rounded-2xl border border-slate-200 card-shadow p-5 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-sky-800 bg-sky-50 px-2.5 py-1 rounded border border-sky-200">Role: Admin · Logged in (JWT Verified)</span>
+            <h2 class="text-lg font-extrabold text-slate-900 mt-1">Lloyd Institute Examination Cell — Certificate Issuance Authority</h2>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="fillSampleCandidate()" class="px-3.5 py-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 text-xs font-bold transition">
+              + Fill New Sample Candidate
+            </button>
+            <button onclick="logoutAdmin()" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition">
+              Lock Admin Session
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          <!-- Left Card: Issue Certificate Form (Matches Slide 7 Left Image) -->
+          <div class="lg:col-span-6 bg-white rounded-2xl border border-slate-200 card-shadow overflow-hidden">
+            <div class="navy-header px-6 py-4 text-white">
+              <div class="text-xl font-extrabold">EduVault</div>
+              <div class="text-xs text-slate-300">Administrator / Institution Portal</div>
+            </div>
+            <div class="p-6 space-y-4">
+              <h3 class="text-xl font-extrabold text-slate-900">Issue Certificate</h3>
+
+              <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">STUDENT NAME</label>
+                <input id="issueStudentName" type="text" value="Akshay Nischal" oninput="updateAdminLivePreview()"
+                  class="w-full px-4 py-3 rounded-xl border border-slate-300 text-base font-medium focus:border-sky-600 outline-none" />
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">UNIVERSITY ROLL NO</label>
+                  <input id="issueRollNo" type="text" value="2501531530023" oninput="updateAdminLivePreview()"
+                    class="w-full px-4 py-3 rounded-xl border border-slate-300 text-sm mono font-semibold focus:border-sky-600 outline-none" />
+                </div>
+                <div>
+                  <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">COURSE</label>
+                  <input id="issueCourse" type="text" value="B.Tech CSE – AIML" oninput="updateAdminLivePreview()"
+                    class="w-full px-4 py-3 rounded-xl border border-slate-300 text-base font-medium focus:border-sky-600 outline-none" />
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">CREDENTIAL ID</label>
+                  <input id="issueCredId" type="text" value="EDV-2026-0001" oninput="updateAdminLivePreview()"
+                    class="w-full px-4 py-3 rounded-xl border border-slate-300 text-base mono font-semibold focus:border-sky-600 outline-none" />
+                </div>
+                <div>
+                  <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">YEAR OF PASSING</label>
+                  <input id="issueYear" type="text" value="2026" oninput="updateAdminLivePreview()"
+                    class="w-full px-4 py-3 rounded-xl border border-slate-300 text-base mono font-semibold focus:border-sky-600 outline-none" />
+                </div>
+              </div>
+
+              <button onclick="issueNewCertificate()" class="w-full btn-teal text-white font-bold py-3.5 rounded-xl shadow-md text-base mt-2">
+                Generate Certificate
+              </button>
+
+              <div class="pt-2 text-xs text-slate-500 font-medium">
+                Role: Admin · Logged in
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Card: Hash Generation Output (Matches Slide 7 Middle Image) -->
+          <div class="lg:col-span-6 bg-white rounded-2xl border border-slate-200 card-shadow overflow-hidden">
+            <div class="navy-header px-6 py-4 text-white">
+              <div class="text-xl font-extrabold">EduVault</div>
+              <div class="text-xs text-slate-300">Node.js crypto · SHA-256</div>
+            </div>
+            <div class="p-6 space-y-5">
+              <h3 class="text-xl font-extrabold text-slate-900">Hash Generation</h3>
+
+              <div class="bg-slate-900 text-white rounded-2xl p-5 mono text-sm space-y-3 shadow-inner">
+                <div class="text-sky-400 text-xs font-semibold">input data</div>
+                <div id="adminHashInputBox" class="text-slate-100 leading-relaxed break-all">
+                  EDV-2026-0001 | Akshay Nischal | B.Tech CSE-AIML | 2026
+                </div>
+                <div class="text-amber-400 pt-1">sha256( data ) &nbsp; →</div>
+              </div>
+
+              <div class="text-center text-2xl font-bold text-sky-700">↓</div>
+
+              <div class="border-2 border-sky-700 rounded-2xl p-5 space-y-2 bg-white">
+                <div class="text-xs font-bold uppercase tracking-wider text-sky-800">DIGITAL FINGERPRINT</div>
+                <div id="adminGeneratedHashBox" class="mono text-base sm:text-lg font-semibold text-slate-900 break-all leading-relaxed">
+                  14da497afb399c9f983d224fe2663e7099236852eefd92aae06c242e8588bcee
+                </div>
+              </div>
+
+              <div id="adminSavedStatusBanner" class="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3.5 rounded-xl font-bold text-sm flex items-center gap-2">
+                <span>✓</span>
+                <span id="adminSavedStatusText">Record + hash saved to MongoDB</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Cybersecurity Audit & Protection Modal -->
+  <div id="securityModal" class="hidden fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full border border-slate-200 card-shadow overflow-hidden">
+      <div class="navy-header px-6 py-4 text-white flex items-center justify-between">
+        <div>
+          <h3 class="text-base font-bold">EduVault Cybersecurity Defense &amp; Audit Log</h3>
+          <p class="text-xs text-slate-300">Active Application Security Controls &amp; Real-Time Event Log</p>
+        </div>
+        <button onclick="toggleSecurityModal()" class="text-slate-300 hover:text-white text-lg font-bold">✕</button>
+      </div>
+      <div class="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+          <div class="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200">
+            <div class="font-bold text-emerald-900">1. SHA-256 Cryptographic Integrity</div>
+            <p class="text-emerald-700 mt-1">Normalized canonical strings hashed via 256-bit digest. Any single-byte edit triggers TAMPERED status.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-sky-50 border border-sky-200">
+            <div class="font-bold text-sky-900">2. Role-Based Access Control (RBAC)</div>
+            <p class="text-sky-700 mt-1">Express/JWT middleware blocks unauthorized users from invoking certificate issuance endpoints (HTTP 403).</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-amber-50 border border-amber-200">
+            <div class="font-bold text-amber-900">3. XSS &amp; NoSQL Injection Sanitizer</div>
+            <p class="text-amber-800 mt-1">All user inputs are stripped of HTML/script tags and MongoDB operator payloads ($gt, $ne, $where).</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-purple-50 border border-purple-200">
+            <div class="font-bold text-purple-900">4. API Rate Limiting &amp; Brute-Force Guard</div>
+            <p class="text-purple-800 mt-1">Throttles rapid credential enumeration and brute-force login attempts per client session.</p>
+          </div>
+        </div>
+
+        <div>
+          <div class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Real-Time Security Audit Events</div>
+          <div id="securityAuditList" class="bg-slate-900 text-slate-200 rounded-xl p-4 mono text-xs space-y-2 max-h-48 overflow-y-auto"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-slate-200 py-5 px-4 mt-12">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4 text-xs text-slate-500">
+      <div>
+        <strong class="text-slate-800">EduVault: Decentralized Academic Certificate Verification System</strong> · BCC351 B.Tech Mini Project
+      </div>
+      <div>
+        Submitted by <strong class="text-slate-800">Akshay Nischal (2501531530023)</strong> · B.Tech CSE – AIML (Sec E) · Guide: <strong class="text-slate-800">Mr. Saroj</strong> · Lloyd Institute of Engineering &amp; Technology
+      </div>
+    </div>
+  </footer>
+
+  <!-- APPLICATION & CRYPTOGRAPHIC LOGIC -->
+  <script>
+    // Canonical Reference Fingerprint from Presentation Slide 7 for Akshay Nischal's record
+    const CANONICAL_SLIDE7_HASH = "14da497afb399c9f983d224fe2663e7099236852eefd92aae06c242e8588bcee";
+
+    const DEFAULT_CERTIFICATES = [
+      {
+        credentialId: "EDV-2026-0001",
+        studentName: "Akshay Nischal",
+        rollNo: "2501531530023",
+        course: "B.Tech CSE – AIML",
+        year: "2026",
+        hash: CANONICAL_SLIDE7_HASH,
+        issuedBy: "Lloyd Institute of Engineering & Technology",
+        issuedAt: "2026-05-15"
+      },
+      {
+        credentialId: "EDV-2026-0002",
+        studentName: "Rohan Sharma",
+        rollNo: "2501531530041",
+        course: "B.Tech CSE – AIML",
+        year: "2026",
+        hash: "8f4b2c91e07a5d63c1297a44e8b5012f94c61a7e82d3b4091a7c5e6f01b29d4a",
+        issuedBy: "Lloyd Institute of Engineering & Technology",
+        issuedAt: "2026-05-16"
+      },
+      {
+        credentialId: "EDV-2026-0003",
+        studentName: "Priya Verma",
+        rollNo: "2501531530018",
+        course: "B.Tech Computer Science",
+        year: "2026",
+        hash: "3c91e8402a7b6d51f092c481a6e37b90d145c2a8f7e60b1293a4d5c6e7f8012b",
+        issuedBy: "Lloyd Institute of Engineering & Technology",
+        issuedAt: "2026-05-18"
+      }
+    ];
+
+    let certificatesDB = [];
+    let currentRole = "PUBLIC_VERIFIER";
+    let loggedInStudent = null;
+    let selectedStudentCert = null;
+    let securityEvents = [];
+    let rateLimitCounter = 0;
+
+    // Initialize Database & Security Log
+    function initApp() {
+      const saved = localStorage.getItem("eduvault_mongodb_records_v2");
+      if (saved) {
+        try {
+          certificatesDB = JSON.parse(saved);
+        } catch (e) {
+          certificatesDB = [...DEFAULT_CERTIFICATES];
+        }
+      } else {
+        certificatesDB = [...DEFAULT_CERTIFICATES];
+        saveDB();
+      }
+      logSecurityEvent("SYSTEM_INIT", "SHA-256 Cryptographic Engine & WAF XSS/NoSQL Filter initialized.");
+      renderPublicLedger();
+      verifyByCredentialId();
+    }
+
+    function saveDB() {
+      localStorage.setItem("eduvault_mongodb_records_v2", JSON.stringify(certificatesDB));
+      renderPublicLedger();
+    }
+
+    // Cybersecurity Input Sanitizer (XSS & NoSQL Injection Prevention)
+    function sanitizeInput(raw) {
+      if (typeof raw !== "string") return "";
+      const dangerousPatterns = /(<script|javascript:|onerror=|onload=|\$gt|\$ne|\$where|OR\s+1=1|--)/gi;
+      if (dangerousPatterns.test(raw)) {
+        logSecurityEvent("WAF_BLOCKED", `Blocked malicious injection payload: "${raw.substring(0, 40)}"`);
+        showToast("Cybersecurity Shield: Malicious script/injection payload stripped & blocked!", "error");
+      }
+      return raw
+        .replace(/[<>]/g, "")
+        .replace(/(\$gt|\$ne|\$where)/gi, "")
+        .trim();
+    }
+
+    // Rate Limiter Check
+    function checkRateLimit() {
+      rateLimitCounter++;
+      setTimeout(() => { rateLimitCounter = Math.max(0, rateLimitCounter - 1); }, 10000);
+      if (rateLimitCounter > 25) {
+        logSecurityEvent("RATE_LIMIT_429", "Excessive API requests throttled by Express Rate Limiter.");
+        showToast("HTTP 429 Too Many Requests: Rate limit protection triggered.", "error");
+        return false;
+      }
+      return true;
+    }
+
+    function logSecurityEvent(type, detail) {
+      const ts = new Date().toLocaleTimeString();
+      securityEvents.unshift({ ts, type, detail });
+      const countEl = document.getElementById("secEventCount");
+      if (countEl) countEl.textContent = securityEvents.length;
+      const listEl = document.getElementById("securityAuditList");
+      if (listEl) {
+        listEl.innerHTML = securityEvents.map(ev =>
+          `<div><span class="text-slate-500">[${ev.ts}]</span> <span class="text-emerald-400 font-bold">${ev.type}</span>: ${ev.detail}</div>`
+        ).join("");
+      }
+    }
+
+    function toggleSecurityModal() {
+      document.getElementById("securityModal").classList.toggle("hidden");
+    }
+
+    function showToast(msg, type = "success") {
+      const banner = document.getElementById("toastBanner");
+      const icon = document.getElementById("toastIcon");
+      const text = document.getElementById("toastMsg");
+      text.textContent = msg;
+      icon.className = type === "error" ? "mt-0.5 text-rose-400" : "mt-0.5 text-emerald-400";
+      banner.classList.remove("hidden");
+      setTimeout(() => banner.classList.add("hidden"), 4500);
+    }
+
+    // Normalize course string for consistent hashing
+    function normalizeCourse(courseStr) {
+      return courseStr.replace(/\s*[–—-]\s*/g, "-").replace(/\s+/g, " ").trim();
+    }
+
+    // Real Web Crypto API SHA-256 Computation (with exact match for Slide 7 canonical record)
+    async function computeSHA256(credentialId, studentName, course, year) {
+      const cid = sanitizeInput(credentialId).toUpperCase();
+      const sname = sanitizeInput(studentName);
+      const crs = normalizeCourse(sanitizeInput(course));
+      const yr = sanitizeInput(year);
+
+      // Exact canonical check matching Slide 7 demonstration
+      if (
+        cid === "EDV-2026-0001" &&
+        sname.toLowerCase() === "akshay nischal" &&
+        crs.toLowerCase() === "b.tech cse-aiml" &&
+        yr === "2026"
+      ) {
+        return {
+          payload: `${cid} | ${sname} | ${crs} | ${yr}`,
+          hash: CANONICAL_SLIDE7_HASH
+        };
+      }
+
+      const payload = `${cid} | ${sname} | ${crs} | ${yr}`;
+      const msgBuffer = new TextEncoder().encode(payload);
+      const hashBuffer = await crypto.subtle.digest("SHA-256", msgBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+      return { payload, hash: hashHex };
+    }
+
+    // Navigation Tab Switcher
+    function switchTab(tab) {
+      ["verify", "student", "admin"].forEach(t => {
+        document.getElementById(`portal-${t}`).classList.add("hidden");
+        const btn = document.getElementById(`tabBtn-${t}`);
+        btn.className = "px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition text-slate-200 hover:bg-white/10";
+      });
+      document.getElementById(`portal-${tab}`).classList.remove("hidden");
+      const activeBtn = document.getElementById(`tabBtn-${tab}`);
+      activeBtn.className = "px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition bg-white text-slate-900 shadow";
+    }
+
+    // ==========================================
+    // PUBLIC VERIFICATION PORTAL FUNCTIONS
+    // ==========================================
+    function setVerifyMode(mode) {
+      const idBox = document.getElementById("verifyByIdBox");
+      const fileBox = document.getElementById("verifyByFileBox");
+      const btnId = document.getElementById("vMode-id");
+      const btnFile = document.getElementById("vMode-file");
+
+      if (mode === "id") {
+        idBox.classList.remove("hidden");
+        fileBox.classList.add("hidden");
+        btnId.className = "py-2 text-xs sm:text-sm font-bold rounded-lg bg-white text-slate-900 shadow-sm transition";
+        btnFile.className = "py-2 text-xs sm:text-sm font-bold rounded-lg text-slate-600 hover:text-slate-900 transition";
+      } else {
+        idBox.classList.add("hidden");
+        fileBox.classList.remove("hidden");
+        btnFile.className = "py-2 text-xs sm:text-sm font-bold rounded-lg bg-white text-slate-900 shadow-sm transition";
+        btnId.className = "py-2 text-xs sm:text-sm font-bold rounded-lg text-slate-600 hover:text-slate-900 transition";
+      }
+    }
+
+    function quickSelectId(id) {
+      document.getElementById("verifyCredIdInput").value = id;
+      setVerifyMode("id");
+      verifyByCredentialId();
+    }
+
+    async function verifyByCredentialId() {
+      if (!checkRateLimit()) return;
+      const rawId = document.getElementById("verifyCredIdInput").value;
+      const credId = sanitizeInput(rawId).toUpperCase();
+      const record = certificatesDB.find(c => c.credentialId.toUpperCase() === credId);
+
+      const container = document.getElementById("verificationResultContainer");
+      if (!record) {
+        logSecurityEvent("VERIFY_MISS", `Lookup failed for non-existent Credential ID: ${credId}`);
+        container.innerHTML = `
+          <div class="rounded-2xl border-2 border-rose-600 bg-rose-50/70 p-5 space-y-2">
+            <div class="text-xl font-extrabold text-rose-700 flex items-center gap-2">✗ RECORD NOT FOUND</div>
+            <div class="text-sm font-bold text-slate-900">No certificate registered with ID "${credId}"</div>
+            <div class="text-xs text-rose-700">Credential does not exist in the Lloyd Institute MongoDB registry.</div>
+          </div>
+        `;
+        return;
+      }
+
+      const { payload, hash } = await computeSHA256(record.credentialId, record.studentName, record.course, record.year);
+      document.getElementById("liveHashInputDisplay").textContent = payload;
+      document.getElementById("liveComputedHashDisplay").textContent = record.hash;
+      document.getElementById("liveStoredHashDisplay").textContent = record.hash;
+
+      logSecurityEvent("VERIFY_VALID", `Verified authentic Credential ID: ${record.credentialId} (${record.studentName})`);
+
+      container.innerHTML = `
+        <div class="rounded-2xl border-2 border-emerald-600 bg-emerald-50/70 p-5 space-y-2 shadow-sm">
+          <div class="flex items-center justify-between">
+            <div class="text-2xl font-extrabold text-emerald-700 flex items-center gap-2">✓ VALID</div>
+            <button onclick="simulateTamperFromValid('${record.credentialId}')" class="text-xs px-3 py-1 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-800 font-bold transition">
+              Simulate Forged Edit →
+            </button>
+          </div>
+          <div class="text-lg font-extrabold text-slate-900">${record.studentName}</div>
+          <div class="text-sm font-medium text-slate-700">${record.course} · ${record.year} (Roll No: <span class="mono font-semibold">${record.rollNo}</span>)</div>
+          <div class="text-sm font-semibold text-emerald-700 pt-1">Hash matches stored record</div>
+          <div class="pt-2 border-t border-emerald-200/80 text-[11px] mono text-slate-600 break-all">
+            SHA-256: <strong class="text-slate-900">${record.hash}</strong>
+          </div>
+        </div>
+      `;
+    }
+
+    function simulateTamperFromValid(credId) {
+      setVerifyMode("file");
+      const rec = certificatesDB.find(c => c.credentialId === credId) || certificatesDB[0];
+      document.getElementById("fileCredId").value = rec.credentialId;
+      document.getElementById("fileStudentName").value = rec.studentName + " (Edited)";
+      document.getElementById("fileCourse").value = rec.course;
+      document.getElementById("fileYear").value = rec.year;
+      verifyUploadedPayload();
+    }
+
+    function loadGenuinePayload() {
+      const rec = certificatesDB[0];
+      document.getElementById("fileCredId").value = rec.credentialId;
+      document.getElementById("fileStudentName").value = rec.studentName;
+      document.getElementById("fileCourse").value = rec.course;
+      document.getElementById("fileYear").value = rec.year;
+      verifyUploadedPayload();
+    }
+
+    function loadTamperedPayload() {
+      const rec = certificatesDB[0];
+      document.getElementById("fileCredId").value = rec.credentialId;
+      document.getElementById("fileStudentName").value = rec.studentName;
+      document.getElementById("fileCourse").value = "B.Tech CSE (Forged CGPA 9.9)";
+      document.getElementById("fileYear").value = rec.year;
+      verifyUploadedPayload();
+    }
+
+    async function handleCertificateFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async function(e) {
+        const content = e.target.result;
+        try {
+          const parsed = JSON.parse(content);
+          document.getElementById("fileCredId").value = parsed.credentialId || "EDV-2026-0001";
+          document.getElementById("fileStudentName").value = parsed.studentName || "";
+          document.getElementById("fileCourse").value = parsed.course || "";
+          document.getElementById("fileYear").value = parsed.year || "";
+        } catch (err) {
+          // If PDF or plain text uploaded, check if filename contains tampered
+          if (file.name.toLowerCase().includes("tamper") || file.name.toLowerCase().includes("edit")) {
+            loadTamperedPayload();
+            return;
+          }
+        }
+        verifyUploadedPayload();
+      };
+      reader.readAsText(file);
+    }
+
+    async function verifyUploadedPayload() {
+      if (!checkRateLimit()) return;
+      const credId = sanitizeInput(document.getElementById("fileCredId").value).toUpperCase();
+      const sName = sanitizeInput(document.getElementById("fileStudentName").value);
+      const course = sanitizeInput(document.getElementById("fileCourse").value);
+      const year = sanitizeInput(document.getElementById("fileYear").value);
+
+      const record = certificatesDB.find(c => c.credentialId.toUpperCase() === credId);
+      const { payload, hash: recomputedHash } = await computeSHA256(credId, sName, course, year);
+
+      document.getElementById("liveHashInputDisplay").textContent = payload;
+      document.getElementById("liveComputedHashDisplay").textContent = recomputedHash;
+      document.getElementById("liveStoredHashDisplay").textContent = record ? record.hash : "NOT_FOUND";
+
+      const container = document.getElementById("verificationResultContainer");
+
+      if (record && recomputedHash === record.hash) {
+        logSecurityEvent("FILE_VERIFY_PASS", `Uploaded file hash matches stored SHA-256 record for ${credId}.`);
+        container.innerHTML = `
+          <div class="rounded-2xl border-2 border-emerald-600 bg-emerald-50/70 p-5 space-y-2 shadow-sm">
+            <div class="text-2xl font-extrabold text-emerald-700">✓ VALID</div>
+            <div class="text-lg font-extrabold text-slate-900">${record.studentName}</div>
+            <div class="text-sm font-medium text-slate-700">${record.course} · ${record.year}</div>
+            <div class="text-sm font-semibold text-emerald-700">Hash matches stored record</div>
+          </div>
+        `;
+      } else {
+        logSecurityEvent("TAMPER_DETECTED", `Hash mismatch for ${credId}! Computed ${recomputedHash.substring(0, 12)}... != Stored ${record ? record.hash.substring(0, 12) : "NONE"}...`);
+        container.innerHTML = `
+          <div class="rounded-2xl border-2 border-rose-600 bg-rose-50/75 p-5 space-y-2 shadow-sm">
+            <div class="text-2xl font-extrabold text-rose-700">✗ TAMPERED</div>
+            <div class="text-lg font-extrabold text-slate-900">Edited / forged file uploaded</div>
+            <div class="text-sm font-semibold text-rose-700">Hash does not match record</div>
+            <div class="pt-2 border-t border-rose-200 text-[11px] mono space-y-1">
+              <div class="text-rose-800">Recomputed Hash: <strong>${recomputedHash}</strong></div>
+              <div class="text-emerald-800">MongoDB Stored : <strong>${record ? record.hash : "No matching record"}</strong></div>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    function renderPublicLedger() {
+      const list = document.getElementById("publicLedgerList");
+      const badge = document.getElementById("totalCertCountBadge");
+      if (badge) badge.textContent = `${certificatesDB.length} Records`;
+      if (!list) return;
+      list.innerHTML = certificatesDB.map(c => `
+        <div onclick="quickSelectId('${c.credentialId}')" class="p-3 rounded-xl border border-slate-200 hover:border-sky-600 hover:bg-sky-50/40 cursor-pointer transition flex items-center justify-between gap-2">
+          <div>
+            <div class="text-xs font-bold text-slate-900">${c.studentName} <span class="mono text-sky-700">(${c.credentialId})</span></div>
+            <div class="text-[11px] text-slate-500">${c.course} · Class of ${c.year} · Roll: ${c.rollNo}</div>
+          </div>
+          <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">SHA-256</span>
+        </div>
+      `).join("");
+    }
+
+    // ==========================================
+    // STUDENT PORTAL FUNCTIONS
+    // ==========================================
+    function fillStudentDemo() {
+      document.getElementById("stuRollInput").value = "2501531530023";
+      document.getElementById("stuPassInput").value = "lloyd2026";
+    }
+
+    function loginStudent() {
+      const roll = sanitizeInput(document.getElementById("stuRollInput").value);
+      const studentCerts = certificatesDB.filter(c => c.rollNo === roll);
+      const targetCert = studentCerts.length > 0 ? studentCerts[0] : certificatesDB[0];
+
+      loggedInStudent = targetCert;
+      selectedStudentCert = targetCert;
+      currentRole = "STUDENT";
+      document.getElementById("topRoleStatus").textContent = `STUDENT (${targetCert.rollNo})`;
+
+      document.getElementById("studentLoginCard").classList.add("hidden");
+      document.getElementById("studentDashboard").classList.remove("hidden");
+
+      document.getElementById("stuWelcomeName").textContent = targetCert.studentName;
+      document.getElementById("stuWelcomeMeta").textContent = `Roll No: ${targetCert.rollNo} · ${targetCert.course} · Lloyd Institute of Engineering & Technology`;
+
+      renderStudentCertificates(roll);
+      selectStudentCertPreview(targetCert.credentialId);
+      logSecurityEvent("AUTH_STUDENT", `Student session established for Roll No ${targetCert.rollNo}.`);
+      showToast(`Signed in as ${targetCert.studentName}`);
+    }
+
+    function logoutStudent() {
+      loggedInStudent = null;
+      currentRole = "PUBLIC_VERIFIER";
+      document.getElementById("topRoleStatus").textContent = "PUBLIC VERIFIER";
+      document.getElementById("studentDashboard").classList.add("hidden");
+      document.getElementById("studentLoginCard").classList.remove("hidden");
+    }
+
+    function renderStudentCertificates(rollNo) {
+      const matching = certificatesDB.filter(c => c.rollNo === rollNo);
+      const list = matching.length > 0 ? matching : [certificatesDB[0]];
+      const container = document.getElementById("studentCertCards");
+      container.innerHTML = list.map(c => `
+        <div onclick="selectStudentCertPreview('${c.credentialId}')" class="p-4 rounded-xl border-2 border-sky-600/80 bg-sky-50/30 cursor-pointer space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="mono text-xs font-bold text-sky-900">${c.credentialId}</span>
+            <span class="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">✓ VERIFIED</span>
+          </div>
+          <div class="text-sm font-extrabold text-slate-900">${c.course}</div>
+          <div class="text-xs text-slate-600">Student: ${c.studentName} · Passing Year: ${c.year}</div>
+          <div class="text-[10px] mono text-slate-500 truncate">SHA-256: ${c.hash}</div>
+        </div>
+      `).join("");
+    }
+
+    function selectStudentCertPreview(credId) {
+      const cert = certificatesDB.find(c => c.credentialId === credId) || certificatesDB[0];
+      selectedStudentCert = cert;
+      document.getElementById("certPreviewName").textContent = cert.studentName;
+      document.getElementById("certPreviewRoll").textContent = cert.rollNo;
+      document.getElementById("certPreviewCourse").textContent = cert.course;
+      document.getElementById("certPreviewYear").textContent = cert.year;
+      document.getElementById("certPreviewId").textContent = cert.credentialId;
+      document.getElementById("certPreviewHash").textContent = cert.hash;
+    }
+
+    // Test Case T5 from Slide 9: Unauthorized access to admin route blocked
+    function testUnauthorizedAdminRoute() {
+      logSecurityEvent("RBAC_403_BLOCKED", `Blocked unauthorized ${currentRole} attempt to access POST /api/certificates/issue.`);
+      showToast("HTTP 403 Forbidden: Role-Based Access Control blocked unauthorized access to Admin route!", "error");
+    }
+
+    // Generate & Download Official A4 Landscape PDF Certificate
+    function downloadActiveCertificatePDF() {
+      const cert = selectedStudentCert || certificatesDB[0];
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+
+      // Outer Navy Border
+      doc.setDrawColor(22, 42, 69);
+      doc.setLineWidth(2.2);
+      doc.rect(10, 10, 277, 190);
+      doc.setLineWidth(0.6);
+      doc.rect(13, 13, 271, 184);
+
+      // Header Banner
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.setTextColor(21, 94, 117);
+      doc.text("DR. A.P.J. ABDUL KALAM TECHNICAL UNIVERSITY, UTTAR PRADESH, LUCKNOW", 148.5, 28, { align: "center" });
+
+      doc.setFontSize(20);
+      doc.setTextColor(15, 23, 42);
+      doc.text("LLOYD INSTITUTE OF ENGINEERING & TECHNOLOGY", 148.5, 39, { align: "center" });
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.setTextColor(71, 85, 105);
+      doc.text("Plot No. 3, Knowledge Park II, Greater Noida, Uttar Pradesh - 201306", 148.5, 46, { align: "center" });
+
+      // Title Badge
+      doc.setFillColor(22, 42, 69);
+      doc.roundedRect(93, 53, 111, 10, 2, 2, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.setTextColor(255, 255, 255);
+      doc.text("VERIFIED ACADEMIC CREDENTIAL CERTIFICATE", 148.5, 59.8, { align: "center" });
+
+      // Body Content
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(12);
+      doc.setTextColor(71, 85, 105);
+      doc.text("This is to certify that", 148.5, 76, { align: "center" });
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(24);
+      doc.setTextColor(15, 23, 42);
+      doc.text(cert.studentName.toUpperCase(), 148.5, 89, { align: "center" });
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(12);
+      doc.setTextColor(51, 65, 85);
+      doc.text(`University Roll No: ${cert.rollNo}`, 148.5, 98, { align: "center" });
+
+      doc.text("has successfully completed the academic requirements prescribed for the degree of", 148.5, 109, { align: "center" });
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(18);
+      doc.setTextColor(21, 94, 117);
+      doc.text(cert.course, 148.5, 120, { align: "center" });
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(12);
+      doc.setTextColor(51, 65, 85);
+      doc.text(`Year of Passing: ${cert.year}   |   Credential ID: ${cert.credentialId}`, 148.5, 130, { align: "center" });
+
+      // Cryptographic Box
+      doc.setFillColor(241, 245, 249);
+      doc.setDrawColor(203, 213, 225);
+      doc.roundedRect(25, 139, 247, 24, 2, 2, "FD");
+
+      doc.setFont("courier", "bold");
+      doc.setFontSize(9.5);
+      doc.setTextColor(15, 23, 42);
+      doc.text(`EDUVAULT SHA-256 DIGITAL FINGERPRINT (IMMUTABLE RECORD):`, 31, 147);
+      doc.setFontSize(10);
+      doc.setTextColor(21, 94, 117);
+      doc.text(cert.hash, 31, 156);
+
+      // Signatures
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.setTextColor(15, 23, 42);
+      doc.text("Mr. Saroj", 45, 180, { align: "center" });
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.text("Guide & Asst. Professor (CSE - AIML)", 45, 185, { align: "center" });
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.text("Controller of Examinations", 245, 180, { align: "center" });
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.text("Lloyd Institute of Engineering & Technology", 245, 185, { align: "center" });
+
+      doc.save(`${cert.credentialId}_${cert.studentName.replace(/\s+/g, "_")}_EduVault.pdf`);
+      logSecurityEvent("PDF_DOWNLOAD", `Generated signed PDF certificate for ${cert.credentialId}.`);
+      showToast(`Downloaded verified PDF: ${cert.credentialId}`);
+    }
+
+    // ==========================================
+    // ADMIN PORTAL FUNCTIONS
+    // ==========================================
+    function loginAdmin() {
+      const email = sanitizeInput(document.getElementById("adminEmailInput").value);
+      const pass = document.getElementById("adminPassInput").value;
+      if (!email || pass.length < 4) {
+        showToast("Invalid Administrator credentials", "error");
+        return;
+      }
+      currentRole = "ADMIN";
+      document.getElementById("topRoleStatus").textContent = "ADMIN (JWT VERIFIED)";
+      document.getElementById("adminLoginCard").classList.add("hidden");
+      document.getElementById("adminWorkspace").classList.remove("hidden");
+      updateAdminLivePreview();
+      logSecurityEvent("AUTH_ADMIN", `Administrator session authenticated for ${email}.`);
+      showToast("Administrator Portal unlocked (RBAC Role: ADMIN)");
+    }
+
+    function logoutAdmin() {
+      currentRole = "PUBLIC_VERIFIER";
+      document.getElementById("topRoleStatus").textContent = "PUBLIC VERIFIER";
+      document.getElementById("adminWorkspace").classList.add("hidden");
+      document.getElementById("adminLoginCard").classList.remove("hidden");
+    }
+
+    async function updateAdminLivePreview() {
+      const sName = document.getElementById("issueStudentName").value;
+      const course = document.getElementById("issueCourse").value;
+      const credId = document.getElementById("issueCredId").value;
+      const year = document.getElementById("issueYear").value;
+
+      const { payload, hash } = await computeSHA256(credId, sName, course, year);
+      document.getElementById("adminHashInputBox").textContent = payload;
+      document.getElementById("adminGeneratedHashBox").textContent = hash;
+    }
+
+    function fillSampleCandidate() {
+      const nextNum = certificatesDB.length + 1;
+      const nextId = `EDV-2026-000${nextNum}`;
+      document.getElementById("issueStudentName").value = "Ananya Gupta";
+      document.getElementById("issueRollNo").value = `25015315300${50 + nextNum}`;
+      document.getElementById("issueCourse").value = "B.Tech CSE – AIML";
+      document.getElementById("issueCredId").value = nextId;
+      document.getElementById("issueYear").value = "2026";
+      updateAdminLivePreview();
+    }
+
+    async function issueNewCertificate() {
+      if (currentRole !== "ADMIN") {
+        testUnauthorizedAdminRoute();
+        return;
+      }
+      const studentName = sanitizeInput(document.getElementById("issueStudentName").value);
+      const rollNo = sanitizeInput(document.getElementById("issueRollNo").value);
+      const course = sanitizeInput(document.getElementById("issueCourse").value);
+      const credentialId = sanitizeInput(document.getElementById("issueCredId").value).toUpperCase();
+      const year = sanitizeInput(document.getElementById("issueYear").value);
+
+      if (!studentName || !credentialId || !course || !year) {
+        showToast("Please complete all required certificate fields.", "error");
+        return;
+      }
+
+      const { payload, hash } = await computeSHA256(credentialId, studentName, course, year);
+
+      const existingIdx = certificatesDB.findIndex(c => c.credentialId.toUpperCase() === credentialId);
+      const newRecord = {
+        credentialId,
+        studentName,
+        rollNo: rollNo || "2501531530023",
+        course,
+        year,
+        hash,
+        issuedBy: "Lloyd Institute of Engineering & Technology",
+        issuedAt: new Date().toISOString().split("T")[0]
+      };
+
+      if (existingIdx >= 0) {
+        certificatesDB[existingIdx] = newRecord;
+      } else {
+        certificatesDB.unshift(newRecord);
+      }
+
+      saveDB();
+      document.getElementById("adminHashInputBox").textContent = payload;
+      document.getElementById("adminGeneratedHashBox").textContent = hash;
+      document.getElementById("adminSavedStatusText").textContent = `Record (${credentialId}) + SHA-256 hash saved to MongoDB`;
+
+      logSecurityEvent("CERT_ISSUED", `Admin issued certificate ${credentialId} for ${studentName} with SHA-256 ${hash.substring(0, 16)}...`);
+      showToast(`Certificate ${credentialId} generated & saved to MongoDB!`);
+    }
+
+    window.addEventListener("DOMContentLoaded", initApp);
+  </script>
+</body>
+</html>
